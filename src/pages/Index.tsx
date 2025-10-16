@@ -1,11 +1,77 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { ProcessInput, Process } from "@/components/ProcessInput";
+import { ResourceGraph } from "@/components/ResourceGraph";
+import { DetectionResults } from "@/components/DetectionResults";
+import { ExampleScenarios } from "@/components/ExampleScenarios";
+import { detectDeadlock } from "@/components/DeadlockDetector";
+import { Button } from "@/components/ui/button";
+import { Activity } from "lucide-react";
 
 const Index = () => {
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [detectionResult, setDetectionResult] = useState<ReturnType<typeof detectDeadlock> | null>(null);
+
+  const handleAnalyze = () => {
+    const result = detectDeadlock(processes);
+    setDetectionResult(result);
+  };
+
+  const handleLoadExample = (exampleProcesses: Process[]) => {
+    setProcesses(exampleProcesses);
+    setDetectionResult(null);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Activity className="h-10 w-10 text-primary" />
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Deadlock Detector
+            </h1>
+          </div>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Analyze process dependencies and resource allocation to identify circular wait conditions and prevent system deadlocks
+          </p>
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+          {/* Left Column */}
+          <div className="space-y-6">
+            <ProcessInput
+              processes={processes}
+              onProcessesChange={setProcesses}
+            />
+            <ExampleScenarios onLoadExample={handleLoadExample} />
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            <ResourceGraph
+              processes={processes}
+              cycles={detectionResult?.cycles || []}
+            />
+          </div>
+        </div>
+
+        {/* Analyze Button */}
+        <div className="flex justify-center mb-6">
+          <Button
+            onClick={handleAnalyze}
+            size="lg"
+            className="gap-2 px-8"
+            disabled={processes.length === 0}
+          >
+            <Activity className="h-5 w-5" />
+            Analyze for Deadlocks
+          </Button>
+        </div>
+
+        {/* Results */}
+        {detectionResult && <DetectionResults result={detectionResult} />}
       </div>
     </div>
   );
