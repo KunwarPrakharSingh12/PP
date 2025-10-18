@@ -52,7 +52,6 @@ export type Database = {
       components: {
         Row: {
           board_id: string | null
-          component_type: Database["public"]["Enums"]["component_type"]
           content: string | null
           created_at: string
           id: string
@@ -63,7 +62,6 @@ export type Database = {
         }
         Insert: {
           board_id?: string | null
-          component_type: Database["public"]["Enums"]["component_type"]
           content?: string | null
           created_at?: string
           id?: string
@@ -74,7 +72,6 @@ export type Database = {
         }
         Update: {
           board_id?: string | null
-          component_type?: Database["public"]["Enums"]["component_type"]
           content?: string | null
           created_at?: string
           id?: string
@@ -171,7 +168,6 @@ export type Database = {
           id: string
           released_at: string | null
           requested_at: string
-          status: Database["public"]["Enums"]["lock_status"]
           user_id: string | null
         }
         Insert: {
@@ -180,7 +176,6 @@ export type Database = {
           id?: string
           released_at?: string | null
           requested_at?: string
-          status?: Database["public"]["Enums"]["lock_status"]
           user_id?: string | null
         }
         Update: {
@@ -189,7 +184,6 @@ export type Database = {
           id?: string
           released_at?: string | null
           requested_at?: string
-          status?: Database["public"]["Enums"]["lock_status"]
           user_id?: string | null
         }
         Relationships: [
