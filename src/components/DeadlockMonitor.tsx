@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Shield } from "lucide-react";
+import { AlertTriangle, CheckCircle, Shield, Lightbulb, XCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 
 interface ResourceLock {
   id: string;
@@ -29,17 +30,20 @@ interface DeadlockMonitorProps {
   components: Component[];
   currentUserId: string;
   onResolve: (lockId: string) => void;
+  onCyclesDetected?: (cycles: string[][]) => void;
 }
 
-export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve }: DeadlockMonitorProps) => {
+export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve, onCyclesDetected }: DeadlockMonitorProps) => {
   const [deadlockStatus, setDeadlockStatus] = useState<{
     detected: boolean;
     cycles: DeadlockCycle[];
     message: string;
+    resolutionStrategies: string[];
   }>({
     detected: false,
     cycles: [],
     message: "System healthy",
+    resolutionStrategies: [],
   });
 
   useEffect(() => {
@@ -124,17 +128,55 @@ export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve }:
       }
     }
 
+    const getResolutionStrategies = (cycles: DeadlockCycle[]): string[] => {
+      if (cycles.length === 0) return [];
+
+      const strategies: string[] = [];
+      
+      strategies.push("**Immediate Actions:**");
+      cycles.forEach((cycle, index) => {
+        strategies.push(`• Cycle ${index + 1}: Release lock on ${cycle.components.map(c => getComponentTitle(c)).join(" or ")}`);
+      });
+      strategies.push("");
+      
+      strategies.push("**Coffman Conditions - Break One to Prevent Deadlock:**");
+      strategies.push("1. Mutual Exclusion: Allow shared access when possible");
+      strategies.push("2. Hold and Wait: Request all resources at once");
+      strategies.push("3. No Preemption: Allow lock preemption/timeout");
+      strategies.push("4. Circular Wait: Use consistent resource ordering");
+      strategies.push("");
+      
+      strategies.push("**Best Practices:**");
+      strategies.push("• Implement lock timeout mechanisms");
+      strategies.push("• Use try-lock patterns with backoff");
+      strategies.push("• Follow a global lock ordering convention");
+      strategies.push("• Monitor and log lock acquisition patterns");
+      
+      return strategies;
+    };
+
     if (cycles.length > 0) {
+      const cyclePaths = cycles.map(c => c.users.concat(c.components));
+      if (onCyclesDetected) {
+        onCyclesDetected(cyclePaths);
+      }
+      
       setDeadlockStatus({
         detected: true,
         cycles,
         message: `⚠️ Deadlock detected! ${cycles.length} circular wait condition(s) found.`,
+        resolutionStrategies: getResolutionStrategies(cycles),
       });
     } else {
+      if (onCyclesDetected) {
+        onCyclesDetected([]);
+      }
+      
       setDeadlockStatus({
         detected: false,
         cycles: [],
         message: "✓ System is safe - no deadlocks detected",
+        resolutionStrategies: [],
       });
     }
   };
@@ -177,59 +219,79 @@ export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve }:
 
           {deadlockStatus.detected && deadlockStatus.cycles.length > 0 && (
             <div className="space-y-4">
-              {deadlockStatus.cycles.map((cycle, index) => (
-                <Alert key={index} variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Circular Wait Detected (Cycle {index + 1})</AlertTitle>
-                  <AlertDescription>
-                    <div className="mt-2 space-y-2">
-                      <div>
-                        <strong>Involved Components:</strong>
-                        <ul className="list-disc list-inside ml-2">
-                          {cycle.components.map((compId) => (
-                            <li key={compId} className="text-sm">
-                              {getComponentTitle(compId)}
-                            </li>
-                          ))}
-                        </ul>
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Circular Wait Conditions Detected</AlertTitle>
+                <AlertDescription>
+                  <div className="mt-3 space-y-4">
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Detected Cycles:
+                      </h4>
+                      <div className="space-y-2">
+                        {deadlockStatus.cycles.map((cycle, index) => (
+                          <div key={index} className="bg-background/50 p-3 rounded border border-destructive/30">
+                            <div className="font-semibold mb-1 text-sm">Cycle {index + 1}:</div>
+                            <div className="text-sm space-y-1">
+                              <div><strong>Users:</strong> {cycle.users.length} users waiting</div>
+                              <div><strong>Components:</strong> {cycle.components.map(c => getComponentTitle(c)).join(", ")}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      
-                      <div className="pt-2 border-t">
-                        <strong>Resolution Options:</strong>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <p>• Release one of your locked components</p>
-                          <p>• Wait for another user to release their lock</p>
-                          <p>• Request resources in a consistent order</p>
-                        </div>
-                      </div>
-
-                      {getUserLocksInCycle(cycle).length > 0 && (
-                        <div className="pt-2 flex gap-2">
-                          {getUserLocksInCycle(cycle).map((lock) => (
-                            <Button
-                              key={lock.id}
-                              size="sm"
-                              variant="outline"
-                              onClick={() => onResolve(lock.id)}
-                            >
-                              Release {getComponentTitle(lock.component_id)}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                  </AlertDescription>
-                </Alert>
-              ))}
 
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>Prevention Tips</AlertTitle>
-                <AlertDescription className="text-sm space-y-1">
-                  <p>• Always request resources in the same order</p>
-                  <p>• Release locks as soon as you're done</p>
-                  <p>• Avoid holding multiple locks simultaneously</p>
-                  <p>• Use timeouts for lock acquisition</p>
+                    <Separator className="bg-destructive/20" />
+
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4" />
+                        Resolution Strategies:
+                      </h4>
+                      <div className="space-y-1 text-sm bg-background/30 p-3 rounded border border-destructive/20">
+                        {deadlockStatus.resolutionStrategies.map((strategy, index) => (
+                          <div key={index} className={strategy.startsWith("**") ? "font-semibold mt-2 first:mt-0" : "ml-2"}>
+                            {strategy.replace(/\*\*/g, "")}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator className="bg-destructive/20" />
+
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                        <XCircle className="h-4 w-4" />
+                        Quick Actions:
+                      </h4>
+                      <div className="space-y-3">
+                        {deadlockStatus.cycles.map((cycle, index) => {
+                          const userLocks = getUserLocksInCycle(cycle);
+                          if (userLocks.length === 0) return null;
+                          
+                          return (
+                            <div key={index}>
+                              <p className="text-xs mb-2">Release your locks in Cycle {index + 1}:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {userLocks.map((lock) => (
+                                  <Button
+                                    key={lock.id}
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => onResolve(lock.id)}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Release "{getComponentTitle(lock.component_id)}"
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
             </div>

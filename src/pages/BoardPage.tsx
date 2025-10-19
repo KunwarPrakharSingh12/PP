@@ -18,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { DeadlockMonitor } from "@/components/DeadlockMonitor";
+import { BoardResourceGraph } from "@/components/BoardResourceGraph";
 
 interface Board {
   id: string;
@@ -54,6 +55,7 @@ const BoardPage = () => {
   const [locks, setLocks] = useState<ResourceLock[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [deadlockCycles, setDeadlockCycles] = useState<string[][]>([]);
   
   // New component dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -381,6 +383,18 @@ const BoardPage = () => {
               components={components}
               currentUserId={user?.id || ""}
               onResolve={releaseLockById}
+              onCyclesDetected={(cycles) => setDeadlockCycles(cycles)}
+            />
+          </div>
+        )}
+
+        {/* Resource Graph Visualization */}
+        {locks.length > 0 && (
+          <div className="mb-8">
+            <BoardResourceGraph
+              locks={locks}
+              components={components}
+              cycles={deadlockCycles}
             />
           </div>
         )}
