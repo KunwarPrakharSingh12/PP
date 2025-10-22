@@ -97,6 +97,30 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const deleteAllBoards = async () => {
+    try {
+      const { error } = await supabase
+        .from("boards")
+        .delete()
+        .eq("owner_id", user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "All boards deleted successfully",
+      });
+
+      fetchBoards();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -135,10 +159,21 @@ const Dashboard = () => {
               Collaborative workspaces with real-time deadlock detection
             </p>
           </div>
-          <Button onClick={createDemoBoard} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Board
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={createDemoBoard} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Board
+            </Button>
+            {boards.length > 0 && (
+              <Button 
+                onClick={deleteAllBoards} 
+                variant="destructive" 
+                className="gap-2"
+              >
+                Delete All Boards
+              </Button>
+            )}
+          </div>
         </div>
 
         {boards.length === 0 ? (
