@@ -31,9 +31,10 @@ interface DeadlockMonitorProps {
   currentUserId: string;
   onResolve: (lockId: string) => void;
   onCyclesDetected?: (cycles: string[][]) => void;
+  onDeleteAllComponents?: () => void;
 }
 
-export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve, onCyclesDetected }: DeadlockMonitorProps) => {
+export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve, onCyclesDetected, onDeleteAllComponents }: DeadlockMonitorProps) => {
   const [deadlockStatus, setDeadlockStatus] = useState<{
     detected: boolean;
     cycles: DeadlockCycle[];
@@ -206,11 +207,24 @@ export const DeadlockMonitor = ({ locks, components, currentUserId, onResolve, o
         </div>
         
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-lg font-semibold">Deadlock Monitor</h3>
-            <Badge variant={deadlockStatus.detected ? "destructive" : "default"}>
-              {deadlockStatus.detected ? "Active" : "Clear"}
-            </Badge>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">Deadlock Monitor</h3>
+              <Badge variant={deadlockStatus.detected ? "destructive" : "default"}>
+                {deadlockStatus.detected ? "Active" : "Clear"}
+              </Badge>
+            </div>
+            {onDeleteAllComponents && components.length > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={onDeleteAllComponents}
+                className="gap-2"
+              >
+                <XCircle className="h-4 w-4" />
+                Delete All Components
+              </Button>
+            )}
           </div>
           
           <p className="text-sm text-muted-foreground mb-4">

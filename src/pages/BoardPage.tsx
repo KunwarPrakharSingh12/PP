@@ -265,6 +265,41 @@ const BoardPage = () => {
     }
   };
 
+  const deleteAllComponents = async () => {
+    try {
+      // First, delete all locks associated with components in this board
+      const componentIds = components.map(c => c.id);
+      const { error: locksError } = await supabase
+        .from("resource_locks")
+        .delete()
+        .in("component_id", componentIds);
+
+      if (locksError) throw locksError;
+
+      // Then delete all components
+      const { error: componentsError } = await supabase
+        .from("components")
+        .delete()
+        .eq("board_id", boardId);
+
+      if (componentsError) throw componentsError;
+
+      toast({
+        title: "Success",
+        description: "All components deleted successfully",
+      });
+
+      fetchComponents();
+      fetchLocks();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const isComponentLocked = (componentId: string) => {
     return locks.some((l) => l.component_id === componentId && !l.released_at);
   };
@@ -384,6 +419,7 @@ const BoardPage = () => {
               currentUserId={user?.id || ""}
               onResolve={releaseLockById}
               onCyclesDetected={(cycles) => setDeadlockCycles(cycles)}
+              onDeleteAllComponents={deleteAllComponents}
             />
           </div>
         )}
