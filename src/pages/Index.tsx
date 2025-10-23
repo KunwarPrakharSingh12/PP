@@ -3,12 +3,14 @@ import { ProcessInput, Process } from "@/components/ProcessInput";
 import { ResourceGraph } from "@/components/ResourceGraph";
 import { DetectionResults } from "@/components/DetectionResults";
 import { ExampleScenarios } from "@/components/ExampleScenarios";
+import { ResourceConfiguration } from "@/components/ResourceConfiguration";
 import { detectDeadlock } from "@/components/DeadlockDetector";
 import { Button } from "@/components/ui/button";
 import { Activity } from "lucide-react";
 
 const Index = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [resourceCount, setResourceCount] = useState<number>(5);
   const [detectionResult, setDetectionResult] = useState<ReturnType<typeof detectDeadlock> | null>(null);
 
   const handleAnalyze = () => {
@@ -35,6 +37,14 @@ const Index = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Analyze process dependencies and resource allocation to identify circular wait conditions and prevent system deadlocks
           </p>
+        </div>
+
+        {/* Resource Configuration */}
+        <div className="mb-6">
+          <ResourceConfiguration
+            resourceCount={resourceCount}
+            onResourceCountChange={setResourceCount}
+          />
         </div>
 
         {/* Main Grid */}
