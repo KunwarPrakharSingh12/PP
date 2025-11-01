@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { DeadlockMonitor } from "@/components/DeadlockMonitor";
 import { BoardResourceGraph } from "@/components/BoardResourceGraph";
+import { BoardConfiguration } from "@/components/BoardConfiguration";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface Board {
   id: string;
@@ -69,6 +71,10 @@ const BoardPage = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [deadlockCycles, setDeadlockCycles] = useState<string[][]>([]);
+  
+  // Configuration state
+  const [maxUsers, setMaxUsers] = useState(10);
+  const [maxResources, setMaxResources] = useState(20);
   
   // New component dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -160,6 +166,16 @@ const BoardPage = () => {
   };
 
   const createComponent = async () => {
+    // Check max resources limit
+    if (components.length >= maxResources) {
+      toast({
+        title: "Limit Reached",
+        description: `Maximum ${maxResources} components allowed. Increase the limit in Board Configuration or delete existing components.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate input
     const validation = componentSchema.safeParse({
       title: newComponentTitle,
@@ -376,59 +392,74 @@ const BoardPage = () => {
                 )}
               </div>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Component
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Component</DialogTitle>
-                  <DialogDescription>
-                    Add a new component to your collaborative board
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <label htmlFor="title" className="text-sm font-medium">
-                      Title
-                    </label>
-                    <Input
-                      id="title"
-                      value={newComponentTitle}
-                      onChange={(e) => setNewComponentTitle(e.target.value)}
-                      placeholder="Component title..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="content" className="text-sm font-medium">
-                      Description
-                    </label>
-                    <Textarea
-                      id="content"
-                      value={newComponentContent}
-                      onChange={(e) => setNewComponentContent(e.target.value)}
-                      placeholder="Component description..."
-                      rows={4}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Component
                   </Button>
-                  <Button onClick={createComponent}>Create Component</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Component</DialogTitle>
+                    <DialogDescription>
+                      Add a new component to your collaborative board
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <label htmlFor="title" className="text-sm font-medium">
+                        Title
+                      </label>
+                      <Input
+                        id="title"
+                        value={newComponentTitle}
+                        onChange={(e) => setNewComponentTitle(e.target.value)}
+                        placeholder="Component title..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="content" className="text-sm font-medium">
+                        Description
+                      </label>
+                      <Textarea
+                        id="content"
+                        value={newComponentContent}
+                        onChange={(e) => setNewComponentContent(e.target.value)}
+                        placeholder="Component description..."
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={createComponent}>Create Component</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Board Content */}
       <div className="container mx-auto px-4 py-8">
+        {/* Board Configuration */}
+        <div className="mb-8">
+          <BoardConfiguration
+            maxUsers={maxUsers}
+            onMaxUsersChange={setMaxUsers}
+            maxResources={maxResources}
+            onMaxResourcesChange={setMaxResources}
+            currentUsers={new Set(locks.map(l => l.user_id)).size}
+            currentResources={components.length}
+          />
+        </div>
+
         {/* Deadlock Monitor */}
         {components.length > 0 && (
           <div className="mb-8">

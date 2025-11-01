@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Network } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface ResourceLock {
   id: string;
@@ -40,8 +41,11 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
-    // Clear canvas with white background
-    ctx.fillStyle = "#ffffff";
+    // Clear canvas with gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, 'hsl(220 70% 98%)');
+    gradient.addColorStop(1, 'hsl(210 40% 96%)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (locks.length === 0) {
@@ -98,8 +102,9 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
     const nodesInCycles = new Set<string>();
     cycles.forEach((cycle) => cycle.forEach((node) => nodesInCycles.add(node)));
 
-    // Draw edges
-    ctx.lineWidth = 2;
+    // Draw edges with shadow for depth
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 8;
     locks.forEach((lock) => {
       const userPos = userPositions.get(lock.user_id);
       const resPos = resourcePositions.get(lock.component_id);
@@ -109,29 +114,31 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
         nodesInCycles.has(lock.user_id) && nodesInCycles.has(lock.component_id);
 
       if (lock.acquired_at) {
-        // Allocation edge: resource → user (dashed)
+        // Allocation edge: resource → user (dashed with glow)
         ctx.strokeStyle = isInCycle
-          ? "hsl(var(--destructive))"
-          : "hsl(var(--success))";
-        ctx.setLineDash([5, 5]);
+          ? "hsl(0 70% 55%)"
+          : "hsl(142 60% 45%)";
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(resPos.x, resPos.y);
         ctx.lineTo(userPos.x, userPos.y);
         ctx.stroke();
         ctx.setLineDash([]);
       } else {
-        // Request edge: user → resource (solid with arrow)
+        // Request edge: user → resource (solid with arrow and glow)
         ctx.strokeStyle = isInCycle
-          ? "hsl(var(--destructive))"
-          : "hsl(var(--primary))";
+          ? "hsl(0 70% 55%)"
+          : "hsl(220 70% 50%)";
+        ctx.shadowColor = ctx.strokeStyle;
         ctx.beginPath();
         ctx.moveTo(userPos.x, userPos.y);
         ctx.lineTo(resPos.x, resPos.y);
         ctx.stroke();
 
-        // Draw arrowhead
+        // Draw enhanced arrowhead
         const angle = Math.atan2(resPos.y - userPos.y, resPos.x - userPos.x);
-        const arrowSize = 10;
+        const arrowSize = 12;
         ctx.beginPath();
         ctx.moveTo(resPos.x, resPos.y);
         ctx.lineTo(
@@ -148,66 +155,126 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
       }
     });
 
-    // Draw user nodes (circles)
+    // Reset shadow for nodes
+    ctx.shadowBlur = 10;
+    
+    // Draw user nodes (circles with enhanced styling)
     userArray.forEach((userId) => {
       const pos = userPositions.get(userId);
       if (!pos) return;
 
       const isInCycle = nodesInCycles.has(userId);
+      const isHovered = hoveredNode === userId;
 
-      // Draw circle
+      // Draw outer glow circle
+      if (isHovered) {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 36, 0, 2 * Math.PI);
+        ctx.fillStyle = isInCycle
+          ? "hsl(0 70% 55% / 0.1)"
+          : "hsl(220 70% 50% / 0.1)";
+        ctx.fill();
+      }
+
+      // Draw main circle with gradient
+      const nodeGradient = ctx.createRadialGradient(pos.x - 8, pos.y - 8, 0, pos.x, pos.y, 30);
+      if (isInCycle) {
+        nodeGradient.addColorStop(0, "hsl(0 70% 55% / 0.3)");
+        nodeGradient.addColorStop(1, "hsl(0 70% 55% / 0.1)");
+      } else {
+        nodeGradient.addColorStop(0, "hsl(220 70% 50% / 0.3)");
+        nodeGradient.addColorStop(1, "hsl(220 70% 50% / 0.05)");
+      }
+      
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 30, 0, 2 * Math.PI);
-      ctx.fillStyle = isInCycle
-        ? "hsl(var(--destructive) / 0.2)"
-        : "hsl(var(--primary) / 0.1)";
+      ctx.fillStyle = nodeGradient;
       ctx.fill();
+      
       ctx.strokeStyle = isInCycle
-        ? "hsl(var(--destructive))"
-        : "hsl(var(--primary))";
-      ctx.lineWidth = 2;
+        ? "hsl(0 70% 55%)"
+        : "hsl(220 70% 50%)";
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.lineWidth = 3;
       ctx.stroke();
 
       // Draw text (short user ID)
+      ctx.shadowBlur = 0;
       ctx.fillStyle = isInCycle
-        ? "hsl(var(--destructive))"
-        : "hsl(var(--foreground))";
-      ctx.font = "bold 11px monospace";
+        ? "hsl(0 70% 55%)"
+        : "hsl(220 70% 50%)";
+      ctx.font = "bold 12px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`U${userArray.indexOf(userId) + 1}`, pos.x, pos.y);
     });
 
-    // Draw resource nodes (squares)
+    // Draw resource nodes (rounded squares with enhanced styling)
+    ctx.shadowBlur = 8;
     componentArray.forEach((compId) => {
       const pos = resourcePositions.get(compId);
       if (!pos) return;
 
       const component = components.find((c) => c.id === compId);
       const isInCycle = nodesInCycles.has(compId);
+      const isHovered = hoveredNode === compId;
 
-      // Draw square
-      const size = 24;
-      ctx.fillStyle = isInCycle
-        ? "hsl(var(--destructive) / 0.2)"
-        : "hsl(var(--accent))";
-      ctx.fillRect(pos.x - size / 2, pos.y - size / 2, size, size);
+      const size = 32;
+      const cornerRadius = 6;
+
+      // Draw outer glow if hovered
+      if (isHovered) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = isInCycle ? "hsl(0 70% 55%)" : "hsl(195 60% 45%)";
+      }
+
+      // Draw rounded square with gradient
+      const rectGradient = ctx.createLinearGradient(
+        pos.x - size / 2, pos.y - size / 2,
+        pos.x + size / 2, pos.y + size / 2
+      );
+      if (isInCycle) {
+        rectGradient.addColorStop(0, "hsl(0 70% 55% / 0.3)");
+        rectGradient.addColorStop(1, "hsl(0 70% 55% / 0.1)");
+      } else {
+        rectGradient.addColorStop(0, "hsl(195 60% 45% / 0.4)");
+        rectGradient.addColorStop(1, "hsl(195 60% 45% / 0.15)");
+      }
+
+      ctx.fillStyle = rectGradient;
+      ctx.beginPath();
+      ctx.moveTo(pos.x - size / 2 + cornerRadius, pos.y - size / 2);
+      ctx.lineTo(pos.x + size / 2 - cornerRadius, pos.y - size / 2);
+      ctx.quadraticCurveTo(pos.x + size / 2, pos.y - size / 2, pos.x + size / 2, pos.y - size / 2 + cornerRadius);
+      ctx.lineTo(pos.x + size / 2, pos.y + size / 2 - cornerRadius);
+      ctx.quadraticCurveTo(pos.x + size / 2, pos.y + size / 2, pos.x + size / 2 - cornerRadius, pos.y + size / 2);
+      ctx.lineTo(pos.x - size / 2 + cornerRadius, pos.y + size / 2);
+      ctx.quadraticCurveTo(pos.x - size / 2, pos.y + size / 2, pos.x - size / 2, pos.y + size / 2 - cornerRadius);
+      ctx.lineTo(pos.x - size / 2, pos.y - size / 2 + cornerRadius);
+      ctx.quadraticCurveTo(pos.x - size / 2, pos.y - size / 2, pos.x - size / 2 + cornerRadius, pos.y - size / 2);
+      ctx.closePath();
+      ctx.fill();
+
       ctx.strokeStyle = isInCycle
-        ? "hsl(var(--destructive))"
-        : "hsl(var(--border))";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(pos.x - size / 2, pos.y - size / 2, size, size);
+        ? "hsl(0 70% 55%)"
+        : "hsl(195 60% 45%)";
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.lineWidth = 3;
+      ctx.stroke();
 
       // Draw text
+      ctx.shadowBlur = 0;
       ctx.fillStyle = isInCycle
-        ? "hsl(var(--destructive))"
-        : "hsl(var(--foreground))";
-      ctx.font = "11px monospace";
+        ? "hsl(0 70% 55%)"
+        : "hsl(195 60% 45%)";
+      ctx.font = "bold 10px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const label = component?.title.substring(0, 3).toUpperCase() || `C${componentArray.indexOf(compId) + 1}`;
       ctx.fillText(label, pos.x, pos.y);
     });
+    
+    ctx.shadowBlur = 0;
 
     // Draw legend
     const legendY = canvas.height - 80;
@@ -316,18 +383,38 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.2, 0.5));
   const handleReset = () => setZoom(1);
 
+  const activeUsers = new Set(locks.map(l => l.user_id)).size;
+  const lockedComponents = new Set(locks.filter(l => l.acquired_at).map(l => l.component_id)).size;
+  const waitingRequests = locks.filter(l => !l.acquired_at).length;
+
   return (
-    <Card className="p-6 bg-white border-border shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-foreground">Wait-For Graph Visualization</h2>
+    <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-2 shadow-xl">
+      <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Network className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">Wait-For Graph Visualization</h2>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant="secondary" className="text-xs">
+              {activeUsers} Active Users
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {lockedComponents} Locked Components
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {waitingRequests} Waiting Requests
+            </Badge>
+          </div>
+        </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleZoomOut}>
+          <Button variant="outline" size="sm" onClick={handleZoomOut} title="Zoom Out">
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleReset}>
+          <Button variant="outline" size="sm" onClick={handleReset} title="Reset View">
             <Maximize2 className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleZoomIn}>
+          <Button variant="outline" size="sm" onClick={handleZoomIn} title="Zoom In">
             <ZoomIn className="h-4 w-4" />
           </Button>
         </div>
@@ -335,7 +422,7 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
       <div className="relative">
         <canvas
           ref={canvasRef}
-          className="w-full h-[500px] border border-border rounded-lg bg-white cursor-pointer"
+          className="w-full h-[600px] border-2 border-border rounded-lg shadow-inner cursor-crosshair transition-all hover:shadow-lg"
         />
         {tooltip && (
           <div
