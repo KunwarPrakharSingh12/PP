@@ -15,9 +15,10 @@ export interface Process {
 interface ProcessInputProps {
   processes: Process[];
   onProcessesChange: (processes: Process[]) => void;
+  maxProcesses?: number;
 }
 
-export const ProcessInput = ({ processes, onProcessesChange }: ProcessInputProps) => {
+export const ProcessInput = ({ processes, onProcessesChange, maxProcesses = 20 }: ProcessInputProps) => {
   const addProcess = () => {
     const newProcess: Process = {
       id: `P${processes.length + 1}`,
@@ -70,9 +71,14 @@ export const ProcessInput = ({ processes, onProcessesChange }: ProcessInputProps
               Clear All
             </Button>
           )}
-          <Button onClick={addProcess} size="sm" className="gap-2">
+          <Button 
+            onClick={addProcess} 
+            size="sm" 
+            className="gap-2"
+            disabled={processes.length >= maxProcesses}
+          >
             <Plus className="h-4 w-4" />
-            Add Process
+            Add Process ({processes.length}/{maxProcesses})
           </Button>
         </div>
       </div>

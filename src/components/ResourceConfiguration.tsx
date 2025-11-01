@@ -8,11 +8,15 @@ import { Settings, Plus, Minus } from "lucide-react";
 interface ResourceConfigurationProps {
   resourceCount: number;
   onResourceCountChange: (count: number) => void;
+  processCount: number;
+  onProcessCountChange: (count: number) => void;
 }
 
 export const ResourceConfiguration = ({
   resourceCount,
   onResourceCountChange,
+  processCount,
+  onProcessCountChange,
 }: ResourceConfigurationProps) => {
   const handleIncrement = () => {
     if (resourceCount < 26) {
@@ -33,6 +37,25 @@ export const ResourceConfiguration = ({
     }
   };
 
+  const handleProcessIncrement = () => {
+    if (processCount < 20) {
+      onProcessCountChange(processCount + 1);
+    }
+  };
+
+  const handleProcessDecrement = () => {
+    if (processCount > 1) {
+      onProcessCountChange(processCount - 1);
+    }
+  };
+
+  const handleProcessInputChange = (value: string) => {
+    const num = parseInt(value);
+    if (!isNaN(num) && num >= 1 && num <= 20) {
+      onProcessCountChange(num);
+    }
+  };
+
   const getResourceNames = () => {
     const resources = [];
     for (let i = 0; i < resourceCount; i++) {
@@ -49,8 +72,41 @@ export const ResourceConfiguration = ({
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-end gap-3">
-          <div className="flex-1 space-y-2">
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Process Configuration */}
+          <div className="space-y-2">
+            <Label htmlFor="process-count">Maximum Processes</Label>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleProcessDecrement}
+                disabled={processCount <= 1}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                id="process-count"
+                type="number"
+                min="1"
+                max="20"
+                value={processCount}
+                onChange={(e) => handleProcessInputChange(e.target.value)}
+                className="text-center font-mono font-semibold"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleProcessIncrement}
+                disabled={processCount >= 20}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Resource Configuration */}
+          <div className="space-y-2">
             <Label htmlFor="resource-count">Total Resources Available</Label>
             <div className="flex gap-2">
               <Button

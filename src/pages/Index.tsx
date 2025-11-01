@@ -11,6 +11,7 @@ import { Activity } from "lucide-react";
 const Index = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [resourceCount, setResourceCount] = useState<number>(5);
+  const [processCount, setProcessCount] = useState<number>(10);
   const [detectionResult, setDetectionResult] = useState<ReturnType<typeof detectDeadlock> | null>(null);
 
   const handleAnalyze = () => {
@@ -44,6 +45,8 @@ const Index = () => {
           <ResourceConfiguration
             resourceCount={resourceCount}
             onResourceCountChange={setResourceCount}
+            processCount={processCount}
+            onProcessCountChange={setProcessCount}
           />
         </div>
 
@@ -54,6 +57,7 @@ const Index = () => {
             <ProcessInput
               processes={processes}
               onProcessesChange={setProcesses}
+              maxProcesses={processCount}
             />
             <ExampleScenarios onLoadExample={handleLoadExample} />
           </div>
