@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { FloatingChatbot } from "@/components/FloatingChatbot";
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/demo" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FloatingChatbot />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
