@@ -2,8 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus, Users, Package } from "lucide-react";
+import { Plus, Minus, Users, Package, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AISuggestionsDialog } from "@/components/AISuggestionsDialog";
 
 interface BoardConfigurationProps {
   maxUsers: number;
@@ -62,9 +63,24 @@ export const BoardConfiguration = ({
 
   return (
     <Card className="p-6 bg-gradient-to-br from-card to-card/50 border-2">
-      <div className="flex items-center gap-2 mb-4">
-        <Package className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Board Configuration</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Board Configuration</h3>
+        </div>
+        <AISuggestionsDialog
+          context="users"
+          currentUsers={currentUsers}
+          maxUsers={maxUsers}
+          currentResources={currentResources}
+          maxResources={maxResources}
+          triggerButton={
+            <Button variant="outline" size="sm" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Scaling Tips
+            </Button>
+          }
+        />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

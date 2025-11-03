@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, Maximize2, Network } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Network, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AISuggestionsDialog } from "@/components/AISuggestionsDialog";
 
 interface ResourceLock {
   id: string;
@@ -22,9 +23,17 @@ interface BoardResourceGraphProps {
   locks: ResourceLock[];
   components: Component[];
   cycles: string[][];
+  maxUsers?: number;
+  maxResources?: number;
 }
 
-export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceGraphProps) => {
+export const BoardResourceGraph = ({ 
+  locks, 
+  components, 
+  cycles, 
+  maxUsers = 10, 
+  maxResources = 20 
+}: BoardResourceGraphProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [zoom, setZoom] = useState(1);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -408,6 +417,20 @@ export const BoardResourceGraph = ({ locks, components, cycles }: BoardResourceG
           </div>
         </div>
         <div className="flex gap-2">
+          <AISuggestionsDialog
+            context="deadlock"
+            currentUsers={activeUsers}
+            maxUsers={maxUsers}
+            currentResources={components.length}
+            maxResources={maxResources}
+            hasDeadlock={cycles.length > 0}
+            triggerButton={
+              <Button variant="outline" size="sm" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Advice
+              </Button>
+            }
+          />
           <Button variant="outline" size="sm" onClick={handleZoomOut} title="Zoom Out">
             <ZoomOut className="h-4 w-4" />
           </Button>

@@ -481,6 +481,8 @@ const BoardPage = () => {
               locks={locks}
               components={components}
               cycles={deadlockCycles}
+              maxUsers={maxUsers}
+              maxResources={maxResources}
             />
           </div>
         )}
