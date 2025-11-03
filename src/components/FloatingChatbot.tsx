@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,18 @@ export const FloatingChatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldownMs, setCooldownMs] = useState(0);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (cooldownMs <= 0) return;
+    const id = setInterval(() => {
+      setCooldownMs((ms) => Math.max(0, ms - 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldownMs]);
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || cooldownMs > 0) return;
 
     const userMessage = input.trim();
     setInput("");
@@ -49,6 +57,7 @@ export const FloatingChatbot = () => {
           description: errorMessage,
           variant: "destructive",
         });
+        setCooldownMs(30000);
         return;
       }
 
@@ -58,11 +67,19 @@ export const FloatingChatbot = () => {
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "⚠️ Please wait a bit and try again. The AI may be receiving too many requests right now.",
+        },
+      ]);
       toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
+        title: "Please wait",
+        description: "Too many requests right now. Try again in 30-60 seconds.",
         variant: "destructive",
       });
+      setCooldownMs(30000);
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +158,11 @@ export const FloatingChatbot = () => {
 
           {/* Input */}
           <div className="p-4 border-t border-border">
+            {cooldownMs > 0 && (
+              <p className="mb-2 text-xs text-muted-foreground">
+                Please wait {Math.ceil(cooldownMs / 1000)}s before sending another message.
+              </p>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -151,11 +173,11 @@ export const FloatingChatbot = () => {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
-                disabled={isLoading}
+                placeholder={cooldownMs > 0 ? `Please wait ${Math.ceil(cooldownMs / 1000)}s...` : "Type a message..."}
+                disabled={isLoading || cooldownMs > 0}
                 className="flex-1"
               />
-              <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+              <Button type="submit" size="icon" disabled={isLoading || !input.trim() || cooldownMs > 0}>
                 <Send className="h-4 w-4" />
               </Button>
             </form>
